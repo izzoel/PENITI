@@ -2,34 +2,37 @@
     "version": 2,
     "framework": null,
     "functions": {
-        "api/index.php": { "runtime": "vercel-php@0.9.0" }
+        "api/index.php": {
+            "runtime": "vercel-php@0.9.0",
+            "memory": 1024,
+            "maxDuration": 10
+        }
     },
     "routes": [
-        { "src": "/build/(.*)", "dest": "/public/build/" },
+        { "src": "/build/(.*)", "dest": "/public/build/$1" },
         { "src": "/(.*)", "dest": "/api/index.php" }
     ],
     "public": true,
-    "buildCommand": "vite build",
+    "buildCommand": "npm install && npm run build",
     "outputDirectory": "public",
     "env": {
         "APP_NAME": "peniti",
         "APP_ENV": "production",
         "APP_KEY": "base64:hpQGv5NqcSjIgzXFsuI9JI07oOGKmp3RRRJr/JXRLE4=",
-        "APP_DEBUG": "true",
-        "APP_URL": "http://localhost",
+        "APP_DEBUG": "false",
+        "APP_URL": "https://peniti-pw4z5ah6l-zoels-projects-1f24b370.vercel.app",
 
-        "APP_LOCALE": "en",
-        "APP_FALLBACK_LOCALE": "en",
-        "APP_FAKER_LOCALE": "en_US",
+        "LOG_CHANNEL": "stderr",
+        "LOG_LEVEL": "error",
 
-        "APP_MAINTENANCE_DRIVER": "file",
+        "SESSION_DRIVER": "cookie",
+        "SESSION_LIFETIME": "120",
 
-        "BCRYPT_ROUNDS": "12",
+        "CACHE_STORE": "array",
+        "QUEUE_CONNECTION": "sync",
 
-        "LOG_CHANNEL": "stack",
-        "LOG_STACK": "single",
-        "LOG_DEPRECATIONS_CHANNEL": "null",
-        "LOG_LEVEL": "debug",
+        "FILESYSTEM_DISK": "local",
+        "VIEW_COMPILED_PATH": "/tmp",
 
         "DB_CONNECTION": "mysql",
         "DB_HOST": "jlux9z.h.filess.io",
@@ -38,39 +41,9 @@
         "DB_USERNAME": "peniti_fuelcannot",
         "DB_PASSWORD": "8d55489bb7ea873123fdad2c52b5fb417a798a46",
 
-        "SESSION_DRIVER": "database",
-        "SESSION_LIFETIME": "120",
-        "SESSION_ENCRYPT": "false",
-        "SESSION_PATH": "/",
-        "SESSION_DOMAIN": "null",
-
-        "BROADCAST_CONNECTION": "log",
-        "FILESYSTEM_DISK": "local",
-        "QUEUE_CONNECTION": "database",
-
-        "CACHE_STORE": "database",
-
-        "MEMCACHED_HOST": "127.0.0.1",
-
-        "REDIS_CLIENT": "phpredis",
-        "REDIS_HOST": "127.0.0.1",
-        "REDIS_PASSWORD": "null",
-        "REDIS_PORT": "6379",
-
         "MAIL_MAILER": "log",
-        "MAIL_SCHEME": "null",
-        "MAIL_HOST": "127.0.0.1",
-        "MAIL_PORT": "2525",
-        "MAIL_USERNAME": "null",
-        "MAIL_PASSWORD": "null",
         "MAIL_FROM_ADDRESS": "hello@example.com",
         "MAIL_FROM_NAME": "peniti",
-
-        "AWS_ACCESS_KEY_ID": "",
-        "AWS_SECRET_ACCESS_KEY": "",
-        "AWS_DEFAULT_REGION": "us-east-1",
-        "AWS_BUCKET": "",
-        "AWS_USE_PATH_STYLE_ENDPOINT": "false",
 
         "VITE_APP_NAME": "peniti",
 
