@@ -15,7 +15,7 @@
         "APP_NAME": "peniti",
         "APP_ENV": "production",
         "APP_KEY": "base64:hpQGv5NqcSjIgzXFsuI9JI07oOGKmp3RRRJr/JXRLE4=",
-        "APP_DEBUG": "false",
+        "APP_DEBUG": "true",
         "APP_URL": "http://localhost",
 
         "APP_LOCALE": "en",
