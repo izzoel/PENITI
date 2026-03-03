@@ -31,7 +31,23 @@
         gtag('config', 'UA-94034622-3');
     </script>
     <!-- END GA -->
-</head>
+
+    <style>
+        .edit-icon .icon-hover {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            position: absolute;
+            right: 0px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #6c757d;
+        }
+
+        .edit-icon:hover .icon-hover {
+            opacity: 1;
+        }
+    </style>
 </head>
 
 <body>
@@ -44,11 +60,15 @@
             @include('components.sidebar')
 
             <!-- Content -->
-            {{ $slot }}
-
+            <div class="main-content">
+                <section class="section">
+                    {{ $slot }}
+                </section>
+            </div>
             <!-- Footer -->
             @include('components.footer')
         </div>
+
     </div>
 
     <!-- General JS Scripts -->
@@ -58,8 +78,23 @@
     <script src="{{ asset('library/bootstrap/dist/js/bootstrap.min.js') }}"></script>
     <script src="{{ asset('library/jquery.nicescroll/dist/jquery.nicescroll.min.js') }}"></script>
     <script src="{{ asset('library/moment/min/moment.min.js') }}"></script>
-    <script src="{{ asset('/library/select2/dist/js/select2.js') }}"></script>
+    <script src="{{ asset('library/select2/dist/js/select2.js') }}"></script>
+    <script src="{{ asset('library/sweetalert2/sweetalert2.min.js') }}"></script>
     <script src="{{ asset('stisla/js/stisla.js') }}"></script>
+
+    <script>
+        function showToast(icon, message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: icon,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        }
+    </script>
 
     @stack('scripts')
 

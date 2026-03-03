@@ -16,6 +16,9 @@ new class extends Component {
     public $search = '';
     public $perPage = 10;
 
+    protected $paginationTheme = 'bootstrap';
+    protected $queryString = ['search', 'perPage'];
+
     protected $rules = [
         'urutan' => 'integer|nullable',
         'menu' => 'required|string|max:30',
@@ -29,10 +32,6 @@ new class extends Component {
         'segment.required' => 'Alamat segment wajib diisi.',
     ];
 
-    protected $paginationTheme = 'bootstrap';
-
-    protected $queryString = ['search', 'perPage'];
-
     public function updatedSearch()
     {
         $this->resetPage();
@@ -41,12 +40,6 @@ new class extends Component {
     public function updatedPerPage()
     {
         $this->resetPage();
-    }
-
-    #[Computed]
-    public function totalMenus()
-    {
-        return Menu::count();
     }
 
     #[Computed]
@@ -61,6 +54,12 @@ new class extends Component {
             })
             ->orderBy('urutan')
             ->paginate($this->perPage);
+    }
+
+    #[Computed]
+    public function totalMenus()
+    {
+        return Menu::count();
     }
 
     public function modal()
@@ -176,29 +175,11 @@ new class extends Component {
         $this->dispatch('toast_success', 'Menu ' . $this->menu . ' berhasil dihapus.');
         $this->dispatch('sidebar_reload');
     }
-
-    #[On('refreshTable')]
-    public function refreshTable() {}
 };
 ?>
 
 @push('style')
     <style>
-        .edit-icon .icon-hover {
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-            position: absolute;
-            right: 0px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 16px;
-            color: #6c757d;
-        }
-
-        .edit-icon:hover .icon-hover {
-            opacity: 1;
-        }
-
         .row-parent {
             background-color: #DDE2FF;
         }
@@ -443,23 +424,6 @@ new class extends Component {
         });
         Livewire.on('modal', () => {
             $('#modalSettingMenu').modal('show');
-
-            const select = $('#parentSelect');
-
-            if (select.hasClass("select2-hidden-accessible")) {
-                select.select2('destroy');
-            }
-
-            select.select2({
-                width: '100%',
-                dropdownParent: $('#modalSettingMenu')
-            });
-
-            select.off('change').on('change', function() {
-                Livewire.dispatch('setParentId', {
-                    value: $(this).val()
-                });
-            });
         });
         Livewire.on('cleaning', () => {
             $('#modalSettingMenu').modal('hide');
