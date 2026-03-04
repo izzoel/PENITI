@@ -6,13 +6,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/login', [AuthController::class, 'auth'])->name('auth');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth', 'read')->group(function () {
 
     Route::livewire('/dashboard', 'pages::dashboard')
-        ->name('dashboard');
-
-    Route::livewire('/pegawai', 'pages::pegawai')
-        ->name('pegawai');
+        ->name('home.dashboard');
 
     Route::prefix('setting')->group(function () {
         Route::livewire('/akses', 'pages::setting.akses')
@@ -26,7 +23,6 @@ Route::middleware('auth')->group(function () {
         Route::livewire('/user', 'pages::setting.user')
             ->name('setting.user');
     });
-
-    Route::post('/logout', [AuthController::class, 'logout'])
-        ->name('logout');
 });
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout');

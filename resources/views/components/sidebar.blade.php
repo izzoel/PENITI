@@ -7,25 +7,17 @@
             <div style="font-weight: bold; font-size: 20px;">Kabupaten Tapin</div>
         </div>
         <ul class="sidebar-menu mt-3">
-            <li class="menu-header">Beranda</li>
-
-            {{-- Dashboard Static --}}
-            <li class="nav-item {{ Request::segment(1) == 'dashboard' ? 'active' : '' }}">
-                <a wire:navigate href="{{ route('dashboard') }}" class="nav-link">
-                    <i class="fas fa-house"></i>
-                    <span>Dashboard</span>
-                </a>
-            </li>
             @foreach ($sidebarMenus->where('parent_id', null) as $menu)
                 <li class="menu-header">{{ $menu->menu }}</li>
-                {{-- @if ($menu->children->isEmpty()) --}}
-                @foreach ($menu->children as $child)
-                    <li class="nav-item {{ Request::segment(2) == strtolower($child->menu) ? 'active' : '' }}">
-                        <a wire:navigate href="{{ route(strtolower($menu->menu . '.' . $child->menu)) }}" class="nav-link">
-                            <i class="fas {{ $child->icon }}"></i>
-                            <span>{{ $child->menu }}</span>
-                        </a>
-                    </li>
+                @foreach ($sidebarMenus->where('parent_id', $menu->id) as $child)
+                    @can('r_' . strtolower($child->menu))
+                        <li class="nav-item {{ Request::segment(2) == strtolower($child->menu) ? 'active' : '' }}">
+                            <a wire:navigate href="{{ route(strtolower($menu->menu . '.' . $child->menu)) }}" class="nav-link">
+                                <i class="fas {{ $child->icon }}"></i>
+                                <span>{{ $child->menu }}</span>
+                            </a>
+                        </li>
+                    @endcan
                 @endforeach
             @endforeach
             <div class="hide-sidebar-mini mt-4 mb-4 p-3">
