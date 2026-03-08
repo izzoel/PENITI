@@ -33,11 +33,11 @@
                         <form method="POST" action="{{ route('login') }}" class="needs-validation" novalidate="">
                             @csrf
                             <div class="form-group">
-                                <label for="email">Email</label>
-                                <input id="email" type="email" name="email" class="form-control" @error('email') is-invalid
+                                <label for="nip">Email</label>
+                                <input id="nip" type="text" name="nip" class="form-control" @error('nip') is-invalid
                                 @enderror
-                                    value="{{ old('email') }}" tabindex="1" required autofocus>
-                                @error('email')
+                                    value="{{ old('nip') }}" tabindex="1" required autofocus>
+                                @error('nip')
                                     <div class="text-danger">{{ $message }}</div>
                                 @enderror
                                 <div class="invalid-feedback">
