@@ -1,17 +1,20 @@
 <?php
 
 use App\Models\Menu;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Spatie\Permission\Models\Permission;
+use Symfony\Component\Process\Process;
 
 new class extends Component {
     use WithPagination;
     public $urutan, $menu, $segment, $icon, $parent_id;
 
-    public $editFieldRowId;
+    public $editFieldRowId, $lastSegment;
 
     public $search = '';
     public $perPage = 10;
@@ -22,7 +25,7 @@ new class extends Component {
     protected $rules = [
         'urutan' => 'integer|nullable',
         'menu' => 'required|string|max:30',
-        'segment' => 'required|string|max:30',
+        'segment' => 'nullable|string|max:30',
         'icon' => 'nullable',
         'parent_id' => 'nullable|exists:menus,id',
     ];
@@ -31,6 +34,59 @@ new class extends Component {
         'menu.required' => 'Nama menu wajib diisi.',
         'segment.required' => 'Alamat segment wajib diisi.',
     ];
+
+    private function artisanLivewire($segmentPath, $namaSegment)
+    {
+        $php = $this->directoryPhp();
+
+        $process = new Process([$php, base_path('artisan'), 'make:livewire', $segmentPath], base_path());
+
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException("Gagal menjalankan make:livewire.\n" . 'Exit Code: ' . $process->getExitCode() . "\n" . 'Output: ' . $process->getOutput() . "\n" . 'Error Output: ' . $process->getErrorOutput());
+        }
+
+        $routeFile = base_path('routes/web.php');
+        $fileContents = File::get($routeFile);
+
+        $routeUrl = '/' . str_replace('.', '/', $this->segment);
+        $routeLine = "Route::livewire('{$routeUrl}', '{$segmentPath}')->name('{$namaSegment}');";
+
+        if (!Str::contains($fileContents, $routeLine)) {
+            $search = '=Dynamic Routes=';
+            $pos = strpos($fileContents, $search);
+            $indent = Str::repeat(' ', 4);
+
+            if ($pos !== false) {
+                $insertPos = strpos($fileContents, "\n", $pos) + 1;
+                $fileContents = substr_replace($fileContents, $indent . $routeLine . "\n", $insertPos, 0);
+
+                File::put($routeFile, $fileContents);
+            } else {
+                File::append($routeFile, "\n" . $routeLine);
+            }
+        }
+    }
+
+    private function directoryPhp()
+    {
+        $candidates = ['/usr/bin/php', '/usr/local/bin/php', '/opt/homebrew/bin/php', exec('which php')];
+
+        foreach ($candidates as $php) {
+            if ($php && file_exists($php) && is_executable($php)) {
+                return $php;
+            }
+        }
+
+        throw new \RuntimeException('PHP CLI binary not found.');
+    }
+
+    public function mount()
+    {
+        $routeName = request()->route()?->getName();
+        $this->lastSegment = $routeName ? collect(explode('.', $routeName))->last() : null;
+    }
 
     public function updatedSearch()
     {
@@ -45,7 +101,8 @@ new class extends Component {
     #[Computed]
     public function menus()
     {
-        return Menu::with('parent')
+        return Menu::with(['children', 'parent'])
+            ->whereNull('parent_id')
             ->when($this->search, function ($query) {
                 $query
                     ->where('menu', 'like', '%' . $this->search . '%')
@@ -109,32 +166,22 @@ new class extends Component {
             $field => $value,
         ]);
 
-        // if ($field === 'segment' && !empty($value)) {
-        //     $namaSegment = Str::studly(Str::afterLast($value, '/'));
-        //     $folder = collect(explode('/', $value))
-        //         ->slice(0, -1)
-        //         ->map(fn($s) => Str::studly($s))
-        //         ->implode('/');
-
-        //     $segmentPath = $folder ? $folder . '/' . $namaSegment : $namaSegment;
-
-        //     $komponenPath = app_path("Livewire/Backend/{$segmentPath}.php");
-
-        //     if (!file_exists($komponenPath)) {
-        //         Artisan::call('make:livewire', [
-        //             'name' => 'Backend' . ($folder ? '/' . $folder : '') . '/' . $namaSegment,
-        //         ]);
-        //     }
-        // }
-
         $this->editFieldRowId = null;
-        // $this->reset(['tampil_tambah', 'urutan', 'menu', 'segment', 'icon', 'parent_id']);
         $this->dispatch('toast_success', 'Menu ' . $data->menu . ' berhasil diubah.');
-        $this->dispatch('sidebar_reload');
     }
 
     public function simpan()
     {
+        $namaSegment = $this->segment;
+        $folder =
+            'pages::' .
+            collect(explode('/', $this->segment))
+                ->slice(0, -1)
+                ->map(fn($s) => Str::studly($s))
+                ->implode('/');
+
+        $segmentPath = $folder ? $folder . $namaSegment : $namaSegment;
+
         $this->validate();
 
         Menu::create([
@@ -145,9 +192,13 @@ new class extends Component {
             'parent_id' => $this->parent_id,
         ]);
 
+        if (!empty($this->segment)) {
+            $this->artisanLivewire($segmentPath, $namaSegment);
+        }
+
         $permissionCodes = ['c', 'r', 'u', 'd'];
 
-        $permissionNames = collect($permissionCodes)->map(fn($code) => $code . '_' . Str::slug($this->segment, '_'))->toArray();
+        $permissionNames = collect($permissionCodes)->map(fn($code) => $code . '_' . Str::slug($this->menu, '_'))->toArray();
 
         foreach ($permissionNames as $permName) {
             Permission::firstOrCreate([
@@ -170,10 +221,43 @@ new class extends Component {
         $menu = Menu::findOrFail($id);
         $segment = $menu->segment;
 
+        if (!empty($segment)) {
+            $namaSegment = $menu->segment;
+
+            $segmentPath = 'pages::' . $menu->segment;
+            $segmentSlash = str_replace('.', '/', $menu->segment);
+
+            $before = Str::beforeLast($segmentSlash, '/');
+            $after = Str::afterLast($segmentSlash, '/');
+
+            $modified = $before ? $before . '/⚡' . $after : '⚡' . $after;
+
+            $viewPath = resource_path('views/pages/' . $modified . '.blade.php');
+            if (File::exists($viewPath)) {
+                // File::delete($viewPath);
+            }
+
+            $routeFile = base_path('routes/web.php');
+            $routeUrl = '/' . str_replace('.', '/', $this->segment);
+            $routeLine = "Route::livewire('{$routeUrl}', '{$segmentPath}')->name('{$namaSegment}');";
+
+            if (File::exists($routeFile)) {
+                $contents = File::get($routeFile);
+                $escapedUrl = preg_quote($routeUrl, '#');
+                $escapedView = preg_quote($segmentPath, '#');
+                $escapedName = preg_quote($namaSegment, '#');
+
+                $pattern = "/Route::livewire\(\s*'{$escapedUrl}'\s*,\s*'{$escapedView}'\s*\)\s*->name\(\s*'{$escapedName}'\s*\);\s*/";
+                // $contents = preg_replace($pattern, '', $contents);
+                File::put($routeFile, $contents);
+
+                dd($contents, $escapedUrl, $escapedView, $escapedName);
+            }
+        }
+
         $menu->delete();
 
         $this->dispatch('toast_success', 'Menu ' . $this->menu . ' berhasil dihapus.');
-        $this->dispatch('sidebar_reload');
     }
 };
 ?>
@@ -191,7 +275,7 @@ new class extends Component {
 <div>
     <ol class="breadcrumb bg-white pb-1 shadow-sm mb-4 py-4 pl-4">
         <li class="breadcrumb-item h4 ">
-            <a wire:navigate href="{{ route('dashboard') }}"><b>Home</b></a>
+            <a wire:navigate href="{{ route('home.dashboard') }}"><b>Home</b></a>
         </li>
         <li class="breadcrumb-item active h4 text-dark">
             <b>
@@ -211,9 +295,11 @@ new class extends Component {
                 <div class="card-header">
                     <h4 class="d-flex align-items-center justify-content-between">
                         <span>Setting Menu</span>
-                        <a wire:click="modal" class="btn btn-sm btn-primary rounded pt-0 px-2 m-1">
-                            <i class="fas fa-plus-circle"></i> Baru
-                        </a>
+                        @if (akses('c', $this->lastSegment))
+                            <a x-data @click="$wire.modal()" class="btn btn-sm btn-primary rounded pt-0 px-2 m-1">
+                                <i class="fas fa-plus-circle"></i> Baru
+                            </a>
+                        @endif
                     </h4>
                 </div>
                 <div class="m-3">
@@ -221,7 +307,7 @@ new class extends Component {
                     <div class="row mb-3">
 
                         <div class="col-1">
-                            <select wire:model.live="perPage" class="form-control">
+                            <select wire:model.live="perPage" class="form-control" style="width: 110%">
                                 <option value="5">5</option>
                                 <option value="10">10</option>
                                 <option value="25">25</option>
@@ -229,13 +315,13 @@ new class extends Component {
                             </select>
                         </div>
 
-                        <div class="col-2 offset-9">
+                        <div class="col-3 offset-8">
                             <input type="text" wire:model.live.debounce.500ms="search" class="form-control" placeholder="ketik sesuatu...">
                         </div>
 
                     </div>
 
-                    <table class="table table-hover table-bordered table-md text-center">
+                    <table class="table table-hover table-bordered text-center">
                         <thead>
                             <tr>
                                 <th class="col-1">Urutan</th>
@@ -247,106 +333,154 @@ new class extends Component {
                                     </a>
                                 </th>
                                 <th>Parent</th>
-                                <th class="col-1">Aksi</th>
+                                @if (akses('d', $this->lastSegment))
+                                    <th class="col-1">Aksi</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($this->menus as $menu)
                                 <tr class="{{ is_null($menu->parent_id) ? 'row-parent' : 'row-child' }}">
-                                    <th>
-                                        @if ($editFieldRowId == $menu->id . '-urutan')
-                                            <div class="d-flex justify-content-center">
-                                                <input wire:blur="ubah('{{ $menu->id }}', 'urutan', $event.target.value)"
-                                                    wire:keydown.enter="ubah('{{ $menu->id }}', 'urutan', $event.target.value)" class="form-control form-control-sm"
-                                                    value="{{ $menu->urutan }}" @click.outside="$wire.set('editFieldRowId', null)" />
-                                            </div>
+                                    <td>
+                                        @if (akses('u', $this->lastSegment))
+                                            <x-inline-input-edit :id="$menu->id" field="urutan" :value="$menu->urutan" :edit-field-row-id="$editFieldRowId" />
                                         @else
-                                            <div wire:click="editRow('{{ $menu->id }}', 'urutan', '{{ $menu->urutan }}')" class="edit-icon"
-                                                style="cursor: pointer; position: relative;">
-                                                {{ $menu->urutan ?? '---' }}
-                                                <i class="fa-solid fa-pencil text-warning icon-hover"></i>
-                                            </div>
+                                            {{ $menu->urutan ?? '---' }}
                                         @endif
-                                    </th>
+
+                                    </td>
                                     <td class="text-left">
-                                        @if ($editFieldRowId == $menu->id . '-menu')
-                                            <div class="d-flex justify-content-center">
-                                                <input wire:blur="ubah('{{ $menu->id }}', 'menu', $event.target.value)"
-                                                    wire:keydown.enter="ubah('{{ $menu->id }}', 'menu', $event.target.value)" class="form-control form-control-sm"
-                                                    value="{{ $menu->menu }}" @click.outside="$wire.set('editFieldRowId', null)" />
-                                            </div>
+                                        @if (akses('u', $this->lastSegment))
+                                            <x-inline-input-edit :id="$menu->id" field="menu" :value="$menu->menu" :edit-field-row-id="$editFieldRowId" />
                                         @else
-                                            <div wire:click="editRow('{{ $menu->id }}', 'menu', '{{ $menu->menu }}')" class="edit-icon"
-                                                style="cursor: pointer; position: relative;">
-                                                {{ $menu->menu ?? '---' }}
-                                                <i class="fa-solid fa-pencil text-warning icon-hover"></i>
-                                            </div>
+                                            {{ $menu->menu ?? '---' }}
                                         @endif
                                     </td>
                                     <td class="text-left">
-                                        @if ($editFieldRowId == $menu->id . '-segment')
-                                            <div class="d-flex justify-content-center">
-                                                <input wire:blur="ubah('{{ $menu->id }}', 'segment', $event.target.value)"
-                                                    wire:keydown.enter="ubah('{{ $menu->id }}', 'segment', $event.target.value)" class="form-control form-control-sm"
-                                                    value="{{ $menu->segment }}" @click.outside="$wire.set('editFieldRowId', null)" />
-                                            </div>
+                                        @if (akses('u', $this->lastSegment))
+                                            <x-inline-input-edit :id="$menu->id" field="segment" :value="$menu->segment" :edit-field-row-id="$editFieldRowId" />
                                         @else
-                                            <div wire:click="editRow('{{ $menu->id }}', 'segment', '{{ $menu->segment }}')" class="edit-icon"
-                                                style="cursor: pointer; position: relative;">
-                                                {!! $menu->segment ? '<div class="badge badge-primary">' . $menu->segment . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
-                                                <i class="fa-solid fa-pencil text-warning icon-hover"></i>
-                                            </div>
+                                            {!! $menu->segment ? '<div class="badge badge-primary">' . $menu->segment . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
                                         @endif
                                     </td>
                                     <td class="text-left">
-                                        @if ($editFieldRowId == $menu->id . '-icon')
-                                            <div class="d-flex justify-content-center">
-                                                <input wire:blur="ubah('{{ $menu->id }}', 'icon', $event.target.value)"
-                                                    wire:keydown.enter="ubah('{{ $menu->id }}', 'icon', $event.target.value)" class="form-control form-control-sm"
-                                                    value="{{ $menu->icon }}" @click.outside="$wire.set('editFieldRowId', null)" />
-                                            </div>
+                                        @if (akses('u', $this->lastSegment))
+                                            <x-inline-input-edit :id="$menu->id" field="icon" :value="$menu->icon" :edit-field-row-id="$editFieldRowId" />
                                         @else
-                                            <div wire:click="editRow('{{ $menu->id }}', 'icon', '{{ $menu->icon }}')" class="edit-icon"
-                                                style="cursor: pointer; position: relative;">
-                                                <i class="fa {{ $menu->icon }}"></i>&nbsp;
-                                                {!! $menu->icon ? '<div class="badge badge-primary">' . $menu->icon . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
-                                                <i class="fa-solid fa-pencil text-warning icon-hover"></i>
-                                            </div>
+                                            {!! $menu->icon ? '<div class="badge badge-primary">' . $menu->icon . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($editFieldRowId == $menu->id . '-parent_id')
-                                            <div x-data x-init="$nextTick(() => {
-                                                $($refs.select).select2({ width: '100%' })
-                                                    .on('change', function() {
-                                                        @this.ubah('{{ $menu->id }}', 'parent_id', $(this).val());
-                                                    });
-                                            })">
-                                                <select x-ref="select" class="form-control form-control-sm">
-                                                    <option value="" {{ is_null($menu->parent_id) ? 'selected' : '' }}>None</option>
-                                                    @foreach ($this->menus->whereNull('parent_id') as $m)
-                                                        @if ($m->id != $menu->id)
-                                                            <option value="{{ $m->id }}" {{ $menu->parent_id == $m->id ? 'selected' : '' }}>
-                                                                {{ $m->menu }}
-                                                            </option>
-                                                        @endif
-                                                    @endforeach
-                                                </select>
-                                            </div>
+                                        @if (akses('u', $this->lastSegment))
+                                            @if ($editFieldRowId == $menu->id . '-parent_id')
+                                                <div x-data x-init="$nextTick(() => {
+                                                    $($refs.select).select2({ width: '100%' })
+                                                        .on('change', function() {
+                                                            @this.ubah('{{ $menu->id }}', 'parent_id', $(this).val());
+                                                        });
+                                                })">
+                                                    <select x-ref="select" class="form-control form-control-sm">
+                                                        <option value="" {{ is_null($menu->parent_id) ? 'selected' : '' }}>None</option>
+                                                        @foreach ($this->menus->whereNull('parent_id') as $m)
+                                                            @if ($m->id != $menu->id)
+                                                                <option value="{{ $m->id }}" {{ $menu->parent_id == $m->id ? 'selected' : '' }}>
+                                                                    {{ $m->menu }}
+                                                                </option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            @else
+                                                <div wire:click="editRow('{{ $menu->id }}', 'parent_id', '{{ $menu->parent_id }}')" class="edit-icon"
+                                                    style="cursor: pointer; position: relative;">
+                                                    {!! $menu->parent ? '<div class="badge badge-primary">' . $menu->parent->menu . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
+                                                    <i class="fa-solid fa-pencil text-warning icon-hover" style="position: absolute; right: 0;"></i>
+                                                </div>
+                                            @endif
                                         @else
-                                            <div wire:click="editRow('{{ $menu->id }}', 'parent_id', '{{ $menu->parent_id }}')" class="edit-icon"
-                                                style="cursor: pointer; position: relative;">
-                                                {!! $menu->parent ? '<div class="badge badge-primary">' . $menu->parent->menu . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
-                                                <i class="fa-solid fa-pencil text-warning icon-hover" style="position: absolute; right: 0;"></i>
-                                            </div>
+                                            {!! $menu->parent ? '<div class="badge badge-primary">' . $menu->parent->menu . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
                                         @endif
                                     </td>
-                                    <td>
-                                        <button wire:click="konfirmasi({{ $menu->id }}, '{{ addslashes($menu->menu) }}')" type="button" class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
+                                    @if (akses('d', $this->lastSegment))
+                                        <td>
+                                            <button wire:click="konfirmasi({{ $menu->id }}, '{{ addslashes($menu->menu) }}')" type="button" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    @endif
                                 </tr>
+                                @foreach ($menu->children as $child)
+                                    <tr>
+                                        <td>
+                                            @if (akses('u', $this->lastSegment))
+                                                <x-inline-input-edit :id="$child->id" field="urutan" :value="$child->urutan" :edit-field-row-id="$editFieldRowId" child />
+                                            @else
+                                                &rdsh;&nbsp;{{ $child->urutan ?? '---' }}
+                                            @endif
+                                        </td>
+                                        <td class="text-left">
+                                            @if (akses('u', $this->lastSegment))
+                                                <x-inline-input-edit :id="$child->id" field="menu" :value="$child->menu" :edit-field-row-id="$editFieldRowId" />
+                                            @else
+                                                {{ $child->menu ?? '---' }}
+                                            @endif
+                                        </td>
+                                        <td class="text-left">
+                                            @if (akses('u', $this->lastSegment))
+                                                <x-inline-input-edit :id="$child->id" field="segment" :value="$child->segment" :edit-field-row-id="$editFieldRowId" />
+                                            @else
+                                                {!! $child->segment ? '<div class="badge badge-primary">' . $child->segment . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
+                                            @endif
+                                        </td>
+                                        <td class="text-left">
+                                            @if (akses('u', $this->lastSegment))
+                                                <x-inline-input-edit :id="$child->id" field="icon" :value="$child->icon" :edit-field-row-id="$editFieldRowId" :i='true' :icon="$child->icon"
+                                                    :badge />
+                                            @else
+                                                <i class="fa {{ $child->icon }}"></i>&nbsp; {!! $child->icon ? '<div class="badge badge-primary">' . $child->icon . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if (akses('u', $this->lastSegment))
+                                                @if ($editFieldRowId == $child->id . '-parent_id')
+                                                    <div x-data x-init="$nextTick(() => {
+                                                        $($refs.select).select2({ width: '100%' })
+                                                            .on('change', function() {
+                                                                @this.ubah('{{ $child->id }}', 'parent_id', $(this).val());
+                                                            });
+                                                    })">
+                                                        <select x-ref="select" class="form-control form-control-sm">
+                                                            <option value="" {{ is_null($child->parent_id) ? 'selected' : '' }}>None</option>
+                                                            @foreach ($this->menus->whereNull('parent_id') as $m)
+                                                                @if ($m->id != $child->id)
+                                                                    <option value="{{ $m->id }}" {{ $menu->parent_id == $m->id ? 'selected' : '' }}>
+                                                                        {{ $m->menu }}
+                                                                    </option>
+                                                                @endif
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                @else
+                                                    <div wire:click="editRow('{{ $child->id }}', 'parent_id', '{{ $child->parent_id }}')" class="edit-icon"
+                                                        style="cursor: pointer; position: relative;">
+                                                        {!! $child->parent ? '<div class="badge badge-primary">' . $child->parent->menu . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
+                                                        <i class="fa-solid fa-pencil text-warning icon-hover" style="position: absolute; right: 0;"></i>
+                                                    </div>
+                                                @endif
+                                            @else
+                                                {!! $child->parent ? '<div class="badge badge-primary">' . $child->parent->menu . '</div>' : '<em class="text-warning text-italic">null</em>' !!}
+                                            @endif
+                                        </td>
+                                        @if (akses('d', $this->lastSegment))
+                                            <td>
+                                                <button wire:click="konfirmasi({{ $child->id }}, '{{ addslashes($child->menu) }}')" type="button"
+                                                    class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        @endif
+                                    </tr>
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="6" class="text-center"><em>Tidak ditemukan</em></td>
@@ -354,63 +488,56 @@ new class extends Component {
                             @endforelse
                         </tbody>
                     </table>
-                    <div class="d-flex justify-content-between align-items-center">
 
-                        <div>
-                            Menamplkan
-                            {{ $this->menus->firstItem() }}
-                            -
-                            {{ $this->menus->lastItem() }}
-                            dari
-                            {{ $this->menus->total() }}
-                            data
-                        </div>
-
+                    <div class="d-flex justify-content-end align-items-center">
                         <div>
                             {{ $this->menus->links() }}
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @teleport('body')
-        <x-modal id="modalSettingMenu" title="Tambah Menu" simpan="simpan" ukuran="sm">
+    @if (akses('c', $this->lastSegment))
+        @teleport('body')
+            <x-modal id="modalSettingMenu" title="Tambah Menu" simpan="simpan" ukuran="sm">
 
-            <div class="form-group">
-                <label>Menu</label>
-                <input wire:model.defer="menu" type="text" class="form-control @error('menu') is-invalid @enderror" placeholder="...">
-                @error('menu')
-                    <div class="invalid-feedback">
-                        {{ $message }}
-                    </div>
-                @enderror
-            </div>
-            <div class="form-group">
-                <label>Segment</label>
-                <input wire:model.defer="segment" type="text" class="form-control @error('segment') is-invalid @enderror" placeholder="...">
-                @error('segment')
-                    <div class="invalid-feedback">
-                        {{ $message }}
-                    </div>
-                @enderror
-            </div>
+                <div class="form-group">
+                    <label>Menu</label>
+                    <input wire:model.defer="menu" type="text" class="form-control @error('menu') is-invalid @enderror" placeholder="...">
+                    @error('menu')
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+                    @enderror
+                </div>
+                <div class="form-group">
+                    <label>Segment</label>
+                    <input wire:model.defer="segment" type="text" class="form-control @error('segment') is-invalid @enderror" placeholder="...">
+                    @error('segment')
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+                    @enderror
+                </div>
 
-            <div class="form-group">
-                <label>Icon</label>
-                <input wire:model.defer="icon" type="text" class="form-control @error('icon') is-invalid @enderror" placeholder="...">
-                @error('icon')
-                    <div class="invalid-feedback">
-                        {{ $message }}
-                    </div>
-                @enderror
-            </div>
+                <div class="form-group">
+                    <label>Icon</label>
+                    <input wire:model.defer="icon" type="text" class="form-control @error('icon') is-invalid @enderror" placeholder="...">
+                    @error('icon')
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+                    @enderror
+                </div>
+                <small class="form-text text-muted" style="line-height: 13px;font-size: 10px">
+                    <em class="text-warning">*Setelah menambahkan Menu, agar mencentang akses <mark>Read</mark> pada menu <mark>Akses</mark></em>
+                </small>
 
-
-        </x-modal>
-    @endteleport
+            </x-modal>
+        @endteleport
+    @endif
 </div>
 
 
