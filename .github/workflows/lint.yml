@@ -1,18 +1,21 @@
 name: linter
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-      - master
-      - workos
-  pull_request:
-    branches:
-      - develop
-      - main
-      - master
-      - workos
+  workflow_dispatch:
+
+# on:
+#   push:
+#     branches:
+#       - develop
+#       - main
+#       - master
+#       - workos
+#   pull_request:
+#     branches:
+#       - develop
+#       - main
+#       - master
+#       - workos
 
 permissions:
   contents: write
