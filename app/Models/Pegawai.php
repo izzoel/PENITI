@@ -22,6 +22,11 @@ class Pegawai extends Model
         'plt' => 'boolean',
     ];
 
+    public function atasan()
+    {
+        return $this->belongsTo(self::class, 'id_atasan');
+    }
+
     public function user()
     {
         return $this->hasOne(User::class, 'id_pegawai');
@@ -32,10 +37,11 @@ class Pegawai extends Model
     |--------------------------------------------------------------------------
     */
 
-    // public function skpd()
-    // {
-    //     return $this->belongsTo(Skpd::class, 'id_skpd');
-    // }
+    public function skpd()
+    {
+        // return $this->belongsTo(SKPD::class, 'id_skpd');
+        return $this->belongsTo(SKPD::class, 'id_skpd', 'id_skpd');
+    }
 
     // public function struktur()
     // {

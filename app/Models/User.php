@@ -53,4 +53,8 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Pegawai::class, 'id_pegawai');
     }
+    public function skpd()
+    {
+        return $this->belongsTo(SKPD::class, 'id_skpd', 'id_skpd');
+    }
 }
