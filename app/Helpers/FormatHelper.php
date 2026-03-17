@@ -1,6 +1,6 @@
 <?php
 
-use Spatie\Permission\Models\Role;
+use Carbon\Carbon;
 
 if (!function_exists('format_nama')) {
     function format_nama($nama)
@@ -15,26 +15,22 @@ if (!function_exists('format_nama')) {
     }
 }
 
-
 if (!function_exists('akses')) {
-    /**
-     * Cek apakah user login punya permission yang diawali prefix tertentu
-     * @param string $prefix Contoh: 'u'
-     * @return bool
-     */
-    function akses(string $prefix): bool
+
+    function akses(string $prefix, ?string $module = null): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (!$user || !$module) return false;
 
-        $role = $user->roles->first();
-        if (!$role) return false;
+        return $user->hasPermissionTo($prefix . '_' . $module);
+    }
+}
 
-        $roleModel = Role::find($role->id);
-        if (!$roleModel) return false;
-
-        return $roleModel->permissions->contains(function ($perm) use ($prefix) {
-            return str_starts_with($perm->name, $prefix . '_');
-        });
+if (!function_exists('format_tanggal')) {
+    function format_tanggal($tanggal)
+    {
+        return Carbon::parse($tanggal)
+            ->locale('id')
+            ->translatedFormat('d F Y');
     }
 }

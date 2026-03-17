@@ -14,8 +14,9 @@ return [
     |
     */
     'api' => [
-        'base_url' => env('PRISMA_API'),
-        'token'    => env('PRISMA_TOKEN'),
+        'prismaUrl' => env('PRISMA_API'),
+        'prismaToken'    => env('PRISMA_TOKEN'),
+        'govemUrl' => env('GOVEM_API'),
     ],
 
     'postmark' => [
