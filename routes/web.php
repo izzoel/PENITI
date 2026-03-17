@@ -8,6 +8,13 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 Route::middleware('auth', 'read')->group(function () {
 
+    // =Dynamic Routes=
+    Route::livewire('/data/pegawai', 'pages::data.pegawai')->name('data.pegawai');
+    Route::livewire('/data/skpd', 'pages::data.skpd')->name('data.skpd');
+    
+    Route::livewire('/data/entry', 'pages::data.entry')->name('data.entry');
+    
+
     Route::livewire('/dashboard', 'pages::dashboard')
         ->name('home.dashboard');
 
