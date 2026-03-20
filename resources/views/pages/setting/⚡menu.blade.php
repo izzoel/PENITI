@@ -234,7 +234,7 @@ new class extends Component {
 
             $viewPath = resource_path('views/pages/' . $modified . '.blade.php');
             if (File::exists($viewPath)) {
-                // File::delete($viewPath);
+                File::delete($viewPath);
             }
 
             $routeFile = base_path('routes/web.php');
@@ -243,15 +243,14 @@ new class extends Component {
 
             if (File::exists($routeFile)) {
                 $contents = File::get($routeFile);
-                $escapedUrl = preg_quote($routeUrl, '#');
-                $escapedView = preg_quote($segmentPath, '#');
+
                 $escapedName = preg_quote($namaSegment, '#');
 
-                $pattern = "/Route::livewire\(\s*'{$escapedUrl}'\s*,\s*'{$escapedView}'\s*\)\s*->name\(\s*'{$escapedName}'\s*\);\s*/";
-                // $contents = preg_replace($pattern, '', $contents);
-                File::put($routeFile, $contents);
+                $pattern = "#Route::livewire\s*\(\s*['\"][^'\"]+['\"]\s*,\s*['\"][^'\"]+['\"]\s*\)\s*->name\s*\(\s*['\"]{$escapedName}['\"]\s*\)\s*;#";
 
-                dd($contents, $escapedUrl, $escapedView, $escapedName);
+                $newContents = preg_replace($pattern, '', $contents);
+
+                File::put($routeFile, $newContents);
             }
         }
 
@@ -504,7 +503,7 @@ new class extends Component {
             <x-modal id="modalSettingMenu" title="Tambah Menu" simpan="simpan" ukuran="sm">
 
                 <div class="form-group">
-                    <label>Menu</label>
+                    <label>Menu<span class="text-danger">*</span></label>
                     <input wire:model.defer="menu" type="text" class="form-control @error('menu') is-invalid @enderror" placeholder="...">
                     @error('menu')
                         <div class="invalid-feedback">
