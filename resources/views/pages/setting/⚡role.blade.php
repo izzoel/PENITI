@@ -9,7 +9,7 @@ new class extends Component {
     use WithPagination;
     public $role;
 
-    public $editFieldRowId;
+    public $editFieldRowId, $lastSegment;
 
     public $search = '';
     public $perPage = 10;
@@ -24,6 +24,12 @@ new class extends Component {
     protected $messages = [
         'role.required' => 'Nama role wajib diisi.',
     ];
+
+    public function mount()
+    {
+        $routeName = request()->route()?->getName();
+        $this->lastSegment = $routeName ? collect(explode('.', $routeName))->last() : null;
+    }
 
     public function updatedSearch()
     {
@@ -116,7 +122,7 @@ new class extends Component {
 <div>
     <ol class="breadcrumb bg-white pb-1 shadow-sm mb-4 py-4 pl-4">
         <li class="breadcrumb-item h4 ">
-            <a wire:navigate href="{{ route('dashboard') }}"><b>Home</b></a>
+            <a wire:navigate href="{{ route('home.dashboard') }}"><b>Home</b></a>
         </li>
         <li class="breadcrumb-item active h4 text-dark">
             <b>
@@ -135,10 +141,12 @@ new class extends Component {
             <div class="card">
                 <div class="card-header">
                     <h4 class="d-flex align-items-center justify-content-between">
-                        <span>Setting Menu</span>
-                        <a wire:click="modal" class="btn btn-sm btn-primary rounded pt-0 px-2 m-1">
-                            <i class="fas fa-plus-circle"></i> Baru
-                        </a>
+                        <span>Setting Role</span>
+                        @if (akses('c', $this->lastSegment))
+                            <a wire:click="modal" class="btn btn-sm btn-primary rounded pt-0 px-2 m-1">
+                                <i class="fas fa-plus-circle"></i> Baru
+                            </a>
+                        @endif
                     </h4>
                 </div>
                 <div class="m-3">
@@ -146,7 +154,7 @@ new class extends Component {
                     <div class="row mb-3">
 
                         <div class="col-1">
-                            <select wire:model.live="perPage" class="form-control">
+                            <select wire:model.live="perPage" class="form-control" style="width: 110%">
                                 <option value="5">5</option>
                                 <option value="10">10</option>
                                 <option value="25">25</option>
@@ -154,7 +162,7 @@ new class extends Component {
                             </select>
                         </div>
 
-                        <div class="col-2 offset-9">
+                        <div class="col-3 offset-8">
                             <input type="text" wire:model.live.debounce.500ms="search" class="form-control" placeholder="ketik sesuatu...">
                         </div>
 
@@ -165,35 +173,31 @@ new class extends Component {
                             <tr>
                                 <th class="col-1">#</th>
                                 <th class="text-left">Role</th>
-                                <th class="col-1">Aksi</th>
+                                @if (akses('d', $this->lastSegment))
+                                    <th class="col-1">Aksi</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($this->roles as $role)
                                 <tr>
-                                    <th>
+                                    <td>
                                         {{ $loop->iteration }}
-                                    </th>
+                                    </td>
                                     <td class="text-left">
-                                        @if ($editFieldRowId == $role->id . '-name')
-                                            <div class="d-flex justify-content-center">
-                                                <input wire:blur="ubah('{{ $role->id }}', 'name', $event.target.value)"
-                                                    wire:keydown.enter="ubah('{{ $role->id }}', 'role', $event.target.value)" class="form-control form-control-sm"
-                                                    value="{{ $role->name }}" @click.outside="$wire.set('editFieldRowId', null)" />
-                                            </div>
+                                        @if (akses('u', $this->lastSegment))
+                                            <x-inline-input-edit :id="$role->id" field="name" :value="$role->name" :edit-field-row-id="$editFieldRowId" />
                                         @else
-                                            <div wire:click="editRow('{{ $role->id }}', 'name', '{{ $role->name }}')" class="edit-icon"
-                                                style="cursor: pointer; position: relative;">
-                                                {{ $role->name ?? '---' }}
-                                                <i class="fa-solid fa-pencil text-warning icon-hover"></i>
-                                            </div>
+                                            {{ $role->name ?? '---' }}
                                         @endif
                                     </td>
-                                    <td>
-                                        <button wire:click="konfirmasi({{ $role->id }}, '{{ addslashes($role->name) }}')" type="button" class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
+                                    @if (akses('d', $this->lastSegment))
+                                        <td>
+                                            <button wire:click="konfirmasi({{ $role->id }}, '{{ addslashes($role->name) }}')" type="button" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    @endif
                                 </tr>
                             @empty
                                 <tr>
@@ -202,45 +206,41 @@ new class extends Component {
                             @endforelse
                         </tbody>
                     </table>
-                    <div class="d-flex justify-content-between align-items-center">
 
-                        <div>
-                            Menamplkan
-                            {{ $this->roles->firstItem() }}
-                            -
-                            {{ $this->roles->lastItem() }}
-                            dari
-                            {{ $this->roles->total() }}
-                            data
-                        </div>
-
+                    <div class="d-flex justify-content-end align-items-center">
                         <div>
                             {{ $this->roles->links() }}
                         </div>
-
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
 
-    @teleport('body')
-        <x-modal id="modalSettingRole" title="Tambah Role" simpan="simpan" ukuran="sm">
+    @if (akses('c', $this->lastSegment))
+        @teleport('body')
+            <x-modal id="modalSettingRole" title="Tambah Role" simpan="simpan" ukuran="sm">
 
-            <div class="form-group">
-                <label>Role</label>
-                <input wire:model.defer="role" type="text" class="form-control @error('role') is-invalid @enderror" placeholder="...">
-                @error('role')
-                    <div class="invalid-feedback">
-                        {{ $message }}
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Role<span class="text-danger">*</span></label>
+                            <input wire:model.defer="role" type="text" class="form-control @error('role') is-invalid @enderror" placeholder="...">
+                            @error('role')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                        </div>
                     </div>
-                @enderror
-            </div>
+                </div>
 
-        </x-modal>
-    @endteleport
+            </x-modal>
+        @endteleport
+    @endif
+
 </div>
-
 
 @push('scripts')
     <script>
