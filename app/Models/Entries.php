@@ -13,8 +13,18 @@ class Entries extends Model
         return $this->belongsTo(User::class, 'id_pegawai', 'id_pegawai');
     }
 
+    public function pegawai()
+    {
+        return $this->belongsTo(Pegawai::class, 'id_pegawai');
+    }
+
     public function kuota()
     {
         return $this->belongsTo(CutiKuota::class, 'id_cuti_kuota');
+    }
+
+    public function skpd()
+    {
+        return $this->belongsTo(SKPD::class, 'id_skpd', 'id_skpd');
     }
 }
