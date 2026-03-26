@@ -31,18 +31,17 @@ class Pegawai extends Model
     {
         return $this->hasOne(User::class, 'id_pegawai');
     }
+
+    public function skpd()
+    {
+        return $this->belongsTo(SKPD::class, 'id_skpd', 'id_skpd');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relationships (Optional)
     |--------------------------------------------------------------------------
     */
-
-    public function skpd()
-    {
-        // return $this->belongsTo(SKPD::class, 'id_skpd');
-        return $this->belongsTo(SKPD::class, 'id_skpd', 'id_skpd');
-    }
-
     // public function struktur()
     // {
     //     return $this->belongsTo(Struktur::class, 'id_struktur');
