@@ -34,3 +34,44 @@ if (!function_exists('format_tanggal')) {
             ->translatedFormat('d F Y');
     }
 }
+if (!function_exists('format_tahun')) {
+    function format_tahun($tanggal)
+    {
+        return Carbon::parse($tanggal)->year;
+    }
+}
+
+if (!function_exists('nomor_surat')) {
+    function nomor_surat($data, $prefix = '800/CUTI')
+    {
+        if (!$data || !isset($data->id)) {
+            return null;
+        }
+
+        $year = now()->year;
+
+        return sprintf('%s/%d/%06d', $prefix, $year, $data->id);
+    }
+}
+
+if (!function_exists('masa_kerja')) {
+    function masa_kerja($nip)
+    {
+        if (!$nip || strlen($nip) < 16) {
+            return null;
+        }
+
+        try {
+            $tmt = substr($nip, 8, 8);
+
+            $tmtDate = Carbon::createFromFormat('Ymd', $tmt);
+            $now = Carbon::now();
+
+            $diff = $tmtDate->diff($now);
+
+            return $diff->y . ' tahun ' . $diff->m . ' bulan ' . $diff->d . ' hari';
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+}
