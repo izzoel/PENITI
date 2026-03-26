@@ -95,10 +95,18 @@ new class extends Component {
             return;
         }
     }
+
     public function modal()
     {
         $this->reset(['nama', 'id_role', 'id_skpd']);
         $this->dispatch('modal');
+    }
+
+    public function user($id)
+    {
+        $this->dispatch('user', [
+            'id' => $id,
+        ]);
     }
 
     public function resetPasswordModal($id)
@@ -271,7 +279,7 @@ new class extends Component {
                                 <th class="text-left">NIP</th>
                                 <th>Role</th>
                                 <th>SKPD</th>
-                                <th class="col-1">Aksi</th>
+                                <th class="col-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -328,7 +336,10 @@ new class extends Component {
                                     </td>
                                     <td>
                                         @if (akses('u', $this->lastSegment))
-                                            <button wire:click="resetPasswordModal({{ $user->id }})" type="button" class="btn btn-sm btn-warning">
+                                            {{-- <button wire:click="user({{ $user->id }})" type="button" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-pencil"></i>
+                                            </button> --}}
+                                            <button wire:click="resetPasswordModal({{ $user->id }})" type="button" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-key"></i>
                                             </button>
                                         @endif
@@ -415,6 +426,48 @@ new class extends Component {
 
     @if (akses('u', $this->lastSegment))
         @teleport('body')
+            <x-modal id="modalUser" title="Setting User" simpan="editUser" ukuran='sm'>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <div>{{ auth()->user()->nama }}</div>
+                            <em>{{ auth()->user()->nip }}</em>
+
+                        </div>
+                    </div>
+
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Atasan</label>
+                            <input wire:model.defer="password" type="password" class="form-control @error('password') is-invalid @enderror" placeholder="password baru...">
+                            @error('password')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Jenis Kelamin</label>
+                            <input wire:model.defer="password" type="password" class="form-control @error('password') is-invalid @enderror" placeholder="password baru...">
+                            @error('password')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+            </x-modal>
+        @endteleport
+        @teleport('body')
             <x-modal id="modalPassword" title="Reset Password" simpan="resetPassword" ukuran='sm'>
 
                 <div class="row">
@@ -493,8 +546,12 @@ new class extends Component {
             $('#modalSettingUser').modal('show');
         });
         Livewire.on('cleaning', () => {
+            $('#modalUser').modal('hide');
             $('#modalPassword').modal('hide');
             $('#modalSettingUser').modal('hide');
+        });
+        Livewire.on('user', () => {
+            $('#modalUser').modal('show');
         });
         Livewire.on('password', () => {
             $('#modalPassword').modal('show');
