@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CutiSaldo extends Model
 {
-    protected $fillable = ['id_pegawai', 'id_cuti_kuota', 'tahun', 'jenis', 'kuota', 'terpakai', 'sisa', 'expired'];
+    protected $fillable = ['id_user', 'id_cuti_kuota', 'id_skpd', 'tahun', 'jenis', 'kuota', 'terpakai', 'sisa', 'expired'];
 
     protected $casts =
     [
@@ -25,5 +25,14 @@ class CutiSaldo extends Model
     public function kuotas()
     {
         return $this->belongsTo(CutiKuota::class, 'id_cuti_kuota');
+    }
+
+    public function skpd()
+    {
+        return $this->belongsTo(SKPD::class, 'id_skpd', 'id_skpd');
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id_user');
     }
 }
