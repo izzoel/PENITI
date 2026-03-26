@@ -9,7 +9,7 @@
             <input class="form-control" type="search" placeholder="Search" aria-label="Search" style="width: 250px">
             <button class="btn" type="submit"><i class="fas fa-search"></i></button>
             <div class="search-backdrop"></div>
-            <div class="search-result">
+            {{-- <div class="search-result">
                 <div class="search-header">
                     Histories
                 </div>
@@ -65,7 +65,7 @@
                         Create a new Homepage Design
                     </a>
                 </div>
-            </div>
+            </div> --}}
         </div>
     </form>
     <ul class="navbar-nav navbar-right ">
@@ -76,7 +76,7 @@
                         <a href="#">Mark All As Read</a>
                     </div>
                 </div>
-                <div class="dropdown-list-content dropdown-list-message">
+                {{-- <div class="dropdown-list-content dropdown-list-message">
                     <a href="#" class="dropdown-item dropdown-item-unread">
                         <div class="dropdown-item-avatar">
                             <img alt="image" src="{{ asset('stisla/img/avatar/avatar-1.png') }}" class="rounded-circle">
@@ -129,14 +129,13 @@
                             <div class="time">Yesterday</div>
                         </div>
                     </a>
-                </div>
+                </div> --}}
                 <div class="dropdown-footer text-center">
                     <a href="#">View All <i class="fas fa-chevron-right"></i></a>
                 </div>
             </div>
         </li>
-        <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown" class="nav-link notification-toggle nav-link-lg beep"><i
-                    class="far fa-bell"></i></a>
+        <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown" class="nav-link notification-toggle nav-link-lg beep"><i class="far fa-bell"></i></a>
             <div class="dropdown-menu dropdown-list dropdown-menu-right">
                 <div class="dropdown-header">Notifications
                     <div class="float-right">
@@ -195,11 +194,39 @@
                 </div>
             </div>
         </li>
-        <li class="dropdown"><a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg nav-link-user">
+        {{-- <li id="dropdownAkun" class="dropdown">
+            <a href="#" id="akun" class="nav-link dropdown-toggle nav-link-lg nav-link-user" data-toggle="dropdown" aria-expanded="false">
                 <img alt="image" src="{{ asset('stisla/img/avatar/avatar-1.png') }}" class="rounded-circle mr-1">
-                <div class="d-sm-none d-lg-inline-block">Hi, {{ auth()->user()->name }}</div>
+                <div class="d-sm-none d-lg-inline-block">{{ auth()->user()->nama }}</div>
             </a>
-            <div wire:ignore class="dropdown-menu dropdown-menu-right">
+
+            <div class="dropdown-menu dropdown-menu-right" style="z-index:1050;">
+                <div class="dropdown-title">Logged in 5 min ago</div>
+                <a href="features-profile.html" class="dropdown-item has-icon">
+                    <i class="far fa-user"></i> Profile
+                </a>
+                <a href="features-activities.html" class="dropdown-item has-icon">
+                    <i class="fas fa-bolt"></i> Activities
+                </a>
+                <a href="features-settings.html" class="dropdown-item has-icon">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="#" class="dropdown-item has-icon text-danger" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                    @csrf
+                </form>
+            </div>
+        </li> --}}
+        <li id="dropdownAkun" class="dropdown">
+            <a href="#" id="akun" class="nav-link dropdown-toggle nav-link-lg nav-link-user" data-toggle="dropdown" aria-expanded="false">
+                <img alt="image" src="{{ asset('stisla/img/avatar/avatar-1.png') }}" class="rounded-circle mr-1">
+                <div class="d-sm-none d-lg-inline-block">{{ auth()->user()->nama }}</div>
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-right" style="z-index:1050;">
                 <div class="dropdown-title">Logged in 5 min ago</div>
                 <a href="features-profile.html" class="dropdown-item has-icon">
                     <i class="far fa-user"></i> Profile
@@ -219,5 +246,17 @@
                 </form>
             </div>
         </li>
+
     </ul>
 </nav>
+
+@push('scripts')
+    <script>
+        function initDropdownAkun() {
+            $('#akun').off('click.bs.dropdown');
+            $('#akun').dropdown();
+        }
+
+        initDropdownAkun();
+    </script>
+@endpush
