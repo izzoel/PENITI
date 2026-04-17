@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email'    => 'required|email',
+            'nip'    => 'required|string',
             'password' => 'required|string',
         ]);
 
@@ -24,7 +24,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::attempt($request->only('nip', 'password'))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Email atau password salah'
@@ -56,37 +56,40 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logout success'], 200);
     }
 
-    public function dataUser(Request $request)
+    public function data(Request $request)
     {
         $user = $request->user();
-        if (! $user) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated'
+            ], 401);
         }
-        $user->loadMissing(['skpd.kepalaUser']);
+
+        $user->loadMissing(['pegawai', 'skpd', 'roles']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Profil user',
-            'data'    => [
-                'id'                  => $user->id,
-                'name'                => $user->name,
-                'email'               => $user->email,
-                'nip'                 => $user->nip,
-                'jabatan'             => $user->jabatan,
-                'role'                => $user->role,
-                'unit_kerja'          => $user->unit_kerja,
-                'skpd_id'             => $user->skpd_id,
-                'skpd_name'           => optional($user->skpd)->nama,
-                'skpd_kepala_user_id' => optional($user->skpd)->kepala_user_id,
-                'skpd_kepala_nama'    => optional($user->skpd?->kepalaUser)->name,
-                'supervisor_id'       => $user->supervisor_id,
-                'supervisor_nama'     => $user->supervisor?->name,
-                'phone'               => $user->phone,
-                'address'             => $user->address,
-                // sesuaikan bila kolom ini ada:
-                // 'tmt_mulai'           => optional($user->tmt_mulai)->toDateString(),
-                // 'masa_kerja_label'    => $user->masa_kerja_label ?? null,
-            ],
+            'message' => 'Data user berhasil diambil',
+            'data' => [
+                'id' => $user->id,
+                'nip' => $user->nip,
+                'nama' => $user->nama,
+                'id_role' => $user->id_role,
+                'roles' => $user->roles->pluck('name')->values(),
+                'id_skpd' => $user->id_skpd,
+                'skpd' => [
+                    'id_skpd' => $user->skpd->id_skpd ?? null,
+                    'nama' => $user->skpd->nama ?? null,
+                ],
+                'pegawai' => [
+                    'id' => $user->pegawai->id ?? null,
+                    'nama' => $user->pegawai->nama ?? null,
+                    'nip' => $user->pegawai->nip ?? null,
+                    'id_skpd' => $user->pegawai->id_skpd ?? null,
+                ],
+            ]
         ], 200);
     }
 }
