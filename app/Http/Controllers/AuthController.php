@@ -22,7 +22,7 @@ class AuthController extends Controller
             ])
         ) {
             throw ValidationException::withMessages([
-                'email' => 'Email atau password salah.',
+                'nip' => 'NIP atau password salah.',
             ]);
         }
 
