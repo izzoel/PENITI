@@ -696,14 +696,13 @@ new class extends Component {
 @push('scripts')
     <script>
         const filterSkpd = $('#selectSkpd');
-        const selectedSkpd = $wire.get('filterSkpd')
 
         $(document).ready(function() {
             filterSkpd.select2({
                 placeholder: "-- pilih --",
             });
             filterSkpd.on('change', function() {
-                $wire.set('filterSkpd', $(this).val());
+                @this.set('filterSkpd', $(this).val());
             });
         });
 
