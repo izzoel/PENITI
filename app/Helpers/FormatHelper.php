@@ -42,12 +42,17 @@ if (!function_exists('format_tahun')) {
 }
 
 if (!function_exists('nomor_surat')) {
-    function nomor_surat($data, $prefix = '800/CUTI')
+    function nomor_surat($data, $prefix = null)
     {
         if (!$data || !isset($data->id)) {
             return null;
         }
 
+        $jenis = (isset($data->id_cuti_kuota) && (int) $data->id_cuti_kuota === 4)
+            ? 'SAKIT'
+            : 'CUTI';
+
+        $prefix = $prefix ?: '800/' . $jenis;
         $year = now()->year;
 
         return sprintf('%s/%d/%06d', $prefix, $year, $data->id);

@@ -393,63 +393,6 @@ new class extends Component {
         $saldo->save();
     }
 
-    // public function simpan()
-    // {
-    //     $this->validate();
-    //     $tahun = format_tahun($this->tanggal_mulai);
-    //     $pegawai = Pegawai::find($this->id_pegawai);
-    //     $id_atasan = empty($pegawai->id_atasan) ? 1 : $pegawai->id_atasan;
-    //     $id_user = $pegawai->id ?? auth()->user()->id;
-    //     $atasan = Pegawai::where('id_struktur', $id_atasan)->first();
-
-    //     $hitung_cuti = CutiSaldo::where('id_user', $id_user)->where('id_cuti_kuota', $this->id_cuti_kuota);
-    //     $n = (clone $hitung_cuti)->where('tahun', $tahun)->first()->sisa ?? 0;
-    //     $n_1 = (clone $hitung_cuti)->where('tahun', $tahun - 1)->first()->sisa ?? 0;
-    //     $n_2 = (clone $hitung_cuti)->where('tahun', $tahun - 2)->first()->sisa ?? 0;
-
-    //     $entry = Entries::create([
-    //         'id_pegawai' => $this->id_pegawai,
-    //         'id_cuti_kuota' => $this->id_cuti_kuota,
-    //         'id_skpd' => auth()->user()->id_skpd,
-    //         'id_atasan' => $id_atasan,
-    //         'tanggal_mulai' => $this->tanggal_mulai,
-    //         'tanggal_selesai' => $this->tanggal_selesai,
-    //         'lama_hari' => $this->lama_hari,
-    //         'alasan' => $this->alasan,
-    //         'alamat' => $this->alamat,
-    //         'telp' => $this->telp,
-    //         'kepada_nama' => $atasan->nama,
-    //         'n' => $n,
-    //         'n_1' => $n_1,
-    //         'n_2' => $n_2,
-    //     ]);
-
-    //     $entry->update([
-    //         'nomor_surat' => nomor_surat($entry),
-    //     ]);
-
-    //     $saldo_cuti = CutiSaldo::firstOrCreate(
-    //         [
-    //             'id_user' => $id_user,
-    //             'id_cuti_kuota' => $this->id_cuti_kuota,
-    //             'tahun' => $tahun,
-    //         ],
-    //         [
-    //             'kuota' => 12,
-    //             'terpakai' => 0,
-    //             'sisa' => 12,
-    //         ],
-    //     );
-
-    //     $saldo_cuti->increment('terpakai', $this->lama_hari);
-    //     $saldo_cuti->refresh();
-    //     $saldo_cuti->sisa = $saldo_cuti->kuota - $saldo_cuti->terpakai;
-    //     $saldo_cuti->save();
-
-    //     $this->dispatch('toast_success', 'Pengajuan cuti berhasil ditambahkan.');
-    //     $this->dispatch('cleaning');
-    // }
-
     public function ubah()
     {
         $this->validate();
@@ -532,6 +475,7 @@ new class extends Component {
 
         $this->dispatch('toast_success', 'Status berhasil ' . $data['status'] . '.');
     }
+
     #[On('hapus')]
     public function hapus($id)
     {
