@@ -7,6 +7,7 @@
     <title>@yield('title') &mdash; Kab Tapin</title>
 
     <!-- General CSS Files -->
+    @livewireStyles
     <link rel="stylesheet" href="{{ asset('library/bootstrap/dist/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('library/bootstrap-daterangepicker/daterangepicker.css') }}">
     <link rel="stylesheet" href="{{ asset('library/select2/dist/css/select2.css') }}">
@@ -48,6 +49,8 @@
             opacity: 1;
         }
     </style>
+
+
 </head>
 
 <body>
@@ -70,7 +73,7 @@
         </div>
 
     </div>
-
+    @livewireScripts
     <!-- General JS Scripts -->
     <script src="{{ asset('library/jquery/dist/jquery.min.js') }}"></script>
     <script src="{{ asset('library/popper.js/dist/umd/popper.js') }}"></script>
@@ -99,11 +102,13 @@
             });
         }
     </script>
-    @stack('scripts')
+
+
 
     <!-- Template JS File -->
     <script src="{{ asset('stisla/js/scripts.js') }}"></script>
     <script src="{{ asset('stisla/js/custom.js') }}"></script>
+    @stack('scripts')
 </body>
 
 </html>

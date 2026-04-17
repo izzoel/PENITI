@@ -10,6 +10,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth', 'read')->group(function () {
 
     // =Dynamic Routes=
+    Route::livewire('/baru', 'pages::baru')->name('baru');
     Route::livewire('/data/pegawai', 'pages::data.pegawai')->name('data.pegawai');
     Route::livewire('/data/skpd', 'pages::data.skpd')->name('data.skpd');
 
@@ -36,3 +37,6 @@ Route::get('/{entry}/pdf', [PdfController::class, 'pdf'])->name('pdf');
 Route::get('/{entry}/verify', [PdfController::class, 'verify'])->name('verify');
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
+
+Route::livewire('/x', 'pages::xskpd')
+    ->name('x.skpd');
